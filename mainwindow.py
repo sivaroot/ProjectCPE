@@ -6,7 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 import sys,os
-from PyQt5.QtWidgets import QWidget,QTableWidget, QApplication, QMainWindow, QFileDialog, QPushButton,QHeaderView,QTableWidgetItem
+from PyQt5.QtWidgets import QWidget,QTableWidget, QApplication, QMainWindow, QFileDialog, QPushButton,QHeaderView,QTableWidgetItem,QListView
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtGui import QIcon,QPixmap,QImage
 import numpy as np
@@ -23,13 +23,14 @@ from pydicom.filereader import read_dicomdir
 import matplotlib.pyplot as plt
 class Ui_MainWindow(object):
     #filepath = get_testdata_files('DICOMDIR')[0]
-    filepath = '/home/sivaroot/CG_Project/77654033_19950903/DICOMDIR'
+    filepath = '/home/sivaroot/CG_Project/98890234_20030505_MR/DICOMDIR'
     print('Path to the DICOM directory: {}'.format(filepath))
     dicom_dir = read_dicomdir(filepath)
     base_dir = dirname(filepath)        
     patient_selected = None
     study_selected = None
-
+    serie_selected = None
+    image_selected = None
 
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
@@ -42,42 +43,42 @@ class Ui_MainWindow(object):
         self.button = QPushButton('Open DICOM', self.centralwidget)
         self.button.setToolTip('Open the DICOM file or DICOMDIR')
         self.button.move(15, 15)
-        self.button.clicked.connect(self.setPatienTable)
+        self.button.clicked.connect(self.setPatientView)
 
-        self.patienTable = QtWidgets.QTableWidget(self.centralwidget)
-        self.patienTable.setColumnCount(2)     
-        self.patienTable.setHorizontalHeaderLabels(['Patient ID',"Name"])
-        self.patienTable.setColumnWidth(0, 80)
-        self.patienTable.setColumnWidth(1, 220)
-        self.patienTable.setGeometry(QtCore.QRect(15, 50, 300, 100))
-        self.patienTable.setObjectName("patienTable")
-        self.patienTable.cellClicked.connect(self.setStudyTable)
+        self.patientView = QtWidgets.QListView(self.centralwidget)
+        self.patientView.setGeometry(QtCore.QRect(15, 50, 300, 70))
+        self.patientView.setObjectName("patientView")
+        self.patientModel = QtGui.QStandardItemModel()
+        self.patientView.setModel(self.patientModel)
+        self.patientView.clicked[QtCore.QModelIndex].connect(self.setStudyView)
+
+        self.studyView = QtWidgets.QListView(self.centralwidget)
+        self.studyView.setGeometry(QtCore.QRect(15, 130, 300, 120))
+        self.studyView.setObjectName("studyView")
+        self.studyModel = QtGui.QStandardItemModel()
+        self.studyView.setModel(self.studyModel)
+        self.studyView.clicked[QtCore.QModelIndex].connect(self.setSeriesView)
+
+        self.seriesView = QtWidgets.QListView(self.centralwidget)
+        self.seriesView.setGeometry(QtCore.QRect(15, 260, 300, 150))
+        self.seriesView.setObjectName("seriesView")
+        self.seriesModel = QtGui.QStandardItemModel()
+        self.seriesView.setModel(self.seriesModel)
+        self.seriesView.clicked[QtCore.QModelIndex].connect(self.setImagesView)
 
 
-        self.studyTable = QtWidgets.QTableWidget(self.centralwidget)
-        self.studyTable.setColumnCount(3)     
-        self.studyTable.setHorizontalHeaderLabels(["Study ID","Study Date", "Description"])
-        self.studyTable.setColumnWidth(0, 70)
-        self.studyTable.setColumnWidth(1, 90)
-        self.studyTable.setColumnWidth(2, 140)
-        self.studyTable.setGeometry(QtCore.QRect(15, 160, 300, 150))
-        self.studyTable.setObjectName("studyTable")
-        self.studyTable.cellClicked.connect(self.setSerieTable)
+        self.imagesView = QtWidgets.QListView(self.centralwidget)
+        self.imagesView.setGeometry(QtCore.QRect(15,420,300,210))
+        self.imagesView.setObjectName("imagesView")
+        self.imagesModel = QtGui.QStandardItemModel()
+        self.imagesView.setModel(self.imagesModel)
+        self.imagesView.clicked[QtCore.QModelIndex].connect(self.setDicomView)
 
-        self.serieTable = QtWidgets.QTableWidget(self.centralwidget)
-        self.serieTable.setColumnCount(1)  
-        self.serieTable.setHorizontalHeaderLabels(['Image'])
-        self.serieTable.setColumnWidth(0,300)
-        self.serieTable.setGeometry(QtCore.QRect(15, 320, 300, 300))
-        self.serieTable.setObjectName("serieTable")
-        self.serieTable.cellClicked.connect(self.setDicomView)
         self.dicomView = QtWidgets.QLabel(self.centralwidget)
-        self.dicomView.setGeometry(QtCore.QRect(330, 15, 512, 512))
+        self.dicomView.setGeometry(QtCore.QRect(330, 15, 320, 320))
         self.dicomView.setObjectName("dicomView")
-        #self.dicomView.cellClicked.connect(self.setSerieTable)
-
+      
         MainWindow.setCentralWidget(self.centralwidget)
-
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -91,77 +92,66 @@ class Ui_MainWindow(object):
         # Just for checking
         print(file_name)
 
-    
-    
-
-    def setPatienTable(self):
-        self.patienTable.setRowCount(len(self.dicom_dir.patient_records))       
+    def setPatientView(self):
+        self.patientModel.clear()
         for patient in range(len(self.dicom_dir.patient_records)):
-            self.patienTable.setItem(patient, 0, QTableWidgetItem(self.dicom_dir.patient_records[patient].PatientID))
-            self.patienTable.setItem(patient, 1, QTableWidgetItem(str(self.dicom_dir.patient_records[patient].PatientName).replace('^',' ')))
+            ID = self.dicom_dir.patient_records[patient].PatientID
+            NAME = str(self.dicom_dir.patient_records[patient].PatientName).replace('^',' ')
+            it = QtGui.QStandardItem("%s\t%s"%(ID,NAME))
+            self.patientModel.appendRow(it)
 
+    def setStudyView(self,index):
+        self.studyModel.clear()
+        selectRow = self.patientModel.itemFromIndex(index).index().row()
+        self.patient_selected = selectRow
+        print ("Click on " , str(selectRow)," ",str(self.dicom_dir.patient_records[selectRow].PatientName).replace('^',' '))
+        studies = self.dicom_dir.patient_records[selectRow].children
 
-    def setStudyTable(self,row):
-        self.patient_selected = row
-        print ("Click on " , str(row)," ",self.dicom_dir.patient_records[row].PatientName)
-        studies = self.dicom_dir.patient_records[self.patient_selected].children
-        self.studyTable.setRowCount(len(studies))       
-
-        for study_record in range(len(studies)):
-            for col in range(3):
-                if(col == 0):
-                    self.studyTable.setItem(study_record, col, QTableWidgetItem(studies[study_record].StudyID))
-                elif(col == 1):
-                    date_str = str(studies[study_record].StudyDate)
-                    date_format = "%s/%s/%s" % (date_str[0:4],date_str[4:6],date_str[6:8])
-                    self.studyTable.setItem(study_record, col, QTableWidgetItem(date_format))
-                elif(col == 2):
-                    self.studyTable.setItem(study_record, col, QTableWidgetItem(studies[study_record].StudyDescription))
+        for study in range(len(studies)):
+            StudyID = studies[study].StudyID
+            StudyDescription = studies[study].StudyDescription
+            it = QtGui.QStandardItem("%s\t%s"%(StudyID,StudyDescription))
+            self.studyModel.appendRow(it)
     
-    def PILimageToQImage(pilimage):
-        imageq = ImageQt(pilimage) #convert PIL image to a PIL.ImageQt object
-        qimage = QImage(imageq) #cast PIL.ImageQt object to QImage object -that´s the trick!!!
-        return qimage
+    def setSeriesView(self,index):
+        self.seriesModel.clear()
+        selectRow = self.studyModel.itemFromIndex(index).index().row()
+        self.study_selected = selectRow
+        all_series = self.dicom_dir.patient_records[self.patient_selected].children[selectRow].children
 
-    def setSerieTable(self,row):
-        print("Reading images...")
-        self.study_selected = row
-        all_series = self.dicom_dir.patient_records[self.patient_selected].children[row].children
-        print("Series count : %d"%len(all_series))
+        for serie in all_series:
+            image_count = len(serie.children)
+            plural = ('', 's')[image_count > 1]
+            if 'SeriesDescription' not in serie:
+                serie.SeriesDescription = "N/A"
+            it = QtGui.QStandardItem("Series {}: {}: {} ({} image{})".format(
+                serie.SeriesNumber, serie.Modality, serie.SeriesDescription,
+                image_count, plural))
+            self.seriesModel.appendRow(it)
 
-        #for series in all_series:
-        image_records = all_series[0].children
+    def setImagesView(self,index):
+        self.imagesModel.clear()
+        selectRow = self.seriesModel.itemFromIndex(index).index().row()
+        self.serie_selected = selectRow
+        image_records = self.dicom_dir.patient_records[self.patient_selected] \
+            .children[self.study_selected] \
+            .children[selectRow] \
+            .children
+        
         image_filenames = [join(self.base_dir, *image_rec.ReferencedFileID)for image_rec in image_records]
-        dataset = pydicom.dcmread(image_filenames[10])
-          
-            #  for image_rec in image_filenames:
-                #  print(image_rec)
-        self.serieTable.setRowCount(len(image_filenames))  
-        for image_filename_index in range(len(image_filenames)):      
-            print(str(image_filenames[image_filename_index]))
-            self.serieTable.setItem(image_filename_index, 0, QTableWidgetItem(str(image_filenames[image_filename_index])))
+        for img in image_filenames:
+            it = QtGui.QStandardItem(img)
+            self.imagesModel.appendRow(it)
 
-        print(len(image_filenames),'\n')
-                #pprint(image_filenames[0], indent=12)
-        if 'PixelData' in dataset:
-            rows = int(dataset.Rows)
-            cols = int(dataset.Columns)
-            print("Image size.......: {rows:d} x {cols:d}, {size:d} bytes".format(
-                rows=rows, cols=cols, size=len(dataset.PixelData)))
-            if 'PixelSpacing' in dataset:
-                print("Pixel spacing....:", dataset.PixelSpacing)
-            print("Slice location...:", dataset.get('SliceLocation', "(missing)"))
-            #plt.imshow(dataset.pixel_array)
-            #plt.show()
-            self.dicomView.setPixmap(QPixmap( QImage(ImageQt(get_PIL_image(dataset)))))
-            #show_PIL(dataset)
-
-    def setDicomView(self,row):
+   
+    def setDicomView(self,index):
         all_series = self.dicom_dir.patient_records[self.patient_selected].children[self.study_selected].children
-        image_records = all_series[0].children
+        selectRow = self.imagesModel.itemFromIndex(index).index().row()
+        image_records = all_series[self.serie_selected].children
         image_filenames = [join(self.base_dir, *image_rec.ReferencedFileID)for image_rec in image_records]
-        dataset = pydicom.dcmread(image_filenames[row])
-        self.dicomView.setPixmap(QPixmap( QImage(ImageQt(get_PIL_image(dataset)))))
+        dataset = pydicom.dcmread(image_filenames[selectRow])
+        print("Slice location...:", dataset.get('SliceLocation', "(missing)"))
+        self.dicomView.setPixmap(QPixmap(QImage(ImageQt(get_PIL_image(dataset).resize((320, 320),Image.ANTIALIAS)))))
 
 
 

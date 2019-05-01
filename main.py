@@ -5,7 +5,7 @@ import pydicom
 from pydicom.data import get_testdata_files
 from pydicom.filereader import read_dicomdir
 
-filepath = get_testdata_files('DICOMDIR')[0]
+filepath = '/home/sivaroot/CG_Project/98890234_20030505_MR/DICOMDIR'
 print('Path to the DICOM directory: {}'.format(filepath))
 dicom_dir = read_dicomdir(filepath)
 base_dir = dirname(filepath)
