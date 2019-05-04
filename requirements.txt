@@ -1,0 +1,6 @@
+numpy
+PyQt5
+Pillow
+pydicom
+opencv-python
+matplotlib
